@@ -280,6 +280,7 @@ jobs:
           mv *imagebuilder* ib && cd ib
           . $GITHUB_WORKSPACE/scripts/merge_files.sh
           sed -i '/local/d;s/#//' files/etc/opkg/distfeeds.conf
+          sed -i '1c root:$1$w4fjHeEK$PHl6CC2NESlaa7C7AP9PU.:19325:0:99999:7:::' files/etc/shadow
           sed -i 's/luci-app-[^ ]*//g' include/target.mk $(find target/ -name Makefile)
           sed -i 's/$(OPKG) install $(BUILD_PACKAGES)/$(OPKG) install --force-overwrite $(BUILD_PACKAGES)/' Makefile
           ls packages/*.ipk | xargs -n1 basename > package.files
@@ -295,18 +296,6 @@ jobs:
           gzip -dc $DEVICE.img.gz | md5sum | sed "s/-/$DEVICE.img/" > $DEVICE.img.md5
           echo "strDate=$(TZ=UTC-8 date +%Y-%m-%d)" >> $GITHUB_ENV
           echo "strDevice=$(echo $DEVICE | awk '{print toupper($0)}')" >> $GITHUB_ENV
-
-          if [[ ${{ github.event.client_payload.device || github.event.inputs.device }} == *"r1s"* ]]; then
-            exit 0
-          fi
-          cd $GITHUB_WORKSPACE/ib
-          rm -rf bin/
-          LUCI=$(cat $GITHUB_WORKSPACE/$DEVICE.config.seed $GITHUB_WORKSPACE/common.seed | grep CONFIG_PACKAGE_luci-app | sed 's/CONFIG_PACKAGE_//;s/=y//' | xargs -n1 -i grep -o {} package.files | sort -u | xargs echo)
-          LP=$(echo $LUCI | sed 's/-app-/-i18n-/g;s/ /\n/g' | xargs -n1 -i grep -o {}-zh-cn package.files | xargs echo | xargs echo)
-          make image PACKAGES="$PACKAGES $LUCI $LP luci-i18n-base-zh-cn luci-i18n-firewall-zh-cn" FILES="files"
-          mv $(ls -1 ./bin/targets/*/*/*img.gz | head -1) $GITHUB_WORKSPACE/release/$DEVICE-with-docker.img.gz
-          cd $GITHUB_WORKSPACE/release/ && md5sum $DEVICE-with-docker.img.gz > $DEVICE-with-docker.img.gz.md5
-          gzip -dc $DEVICE-with-docker.img.gz | md5sum | sed "s/-/$DEVICE-with-docker.img/" > $DEVICE-with-docker.img.md5
 
       - name: Upload release asset
         uses: svenstaro/upload-release-action@v2
